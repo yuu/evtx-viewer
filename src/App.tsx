@@ -1,3 +1,4 @@
+import { match, P }from 'ts-pattern'
 import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -22,14 +23,28 @@ const Table = ({ events }: { events: Array<any> }) => {
         </tr>
       </thead>
       <tbody>
-        {events.map((ev) => {
+        {events.map((ev, idx) => {
           return (
-            <tr>
-              <td></td>
-              <td>2</td>
+            <tr key={idx}>
+              <td>
+                {match(ev.Event.System.Level)
+                  .with(0, ()=> 'INFO')
+                  .with(1, ()=> 'CRITICAL')
+                  .with(2, ()=> 'ERR')
+                  .with(3, ()=> 'WARN')
+                  .with(4, ()=> 'INFO')
+                  .with(5, ()=> 'VERBOSE')
+                  .otherwise(lv => lv)}
+              </td>
+              <td>{ev.Event.System.TimeCreated['#attributes']?.SystemTime}</td>
               <td>{ev.Event.System.Provider['#attributes']?.EventSourcName}</td>
-              <td>{ev.Event.System.EventID}</td>
-              <td>ID: {ev.Event.System.Task}</td>
+              <td>
+                {match(ev.Event.System.EventID)
+                   .with(P.number, (x) => x)
+                   .with({ '#attributes': P._ }, (x) => x['#attributes'].Qualifiers)
+                   .otherwise(() => null)}
+              </td>
+              <td>ID: {ev.Event.System.Task.toString()}</td>
             </tr>
           );
         })}

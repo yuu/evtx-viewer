@@ -10,6 +10,7 @@ use tauri::Window;
 #[tauri::command]
 fn open_file_dialog(window: Window) {
     FileDialogBuilder::new()
+        .add_filter("evtx", &[&"evtx"])
         .set_title("ファイルを選択してください")
         .pick_file(move |file_path| match file_path {
             Some(file) => {
