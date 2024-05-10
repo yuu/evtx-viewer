@@ -4,8 +4,10 @@
 mod event;
 
 use evtx::EvtxParser;
+use tauri_plugin_log::{LogTarget, TimezoneStrategy, RotationStrategy};
 use tauri::api::dialog::FileDialogBuilder;
 use tauri::Window;
+use log::{info, LevelFilter};
 
 #[tauri::command]
 fn open_file_dialog(window: Window) {
@@ -40,7 +42,23 @@ fn open_file_dialog(window: Window) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    LogTarget::Stdout,
+                    LogTarget::Webview,
+                    LogTarget::LogDir
+                ])
+                .timezone_strategy(TimezoneStrategy::UseLocal)
+                .rotation_strategy(RotationStrategy::KeepAll)
+                .level(LevelFilter::Debug)
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![open_file_dialog])
+        .setup(|_app| {
+            info!("App Start");
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
