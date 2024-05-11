@@ -1,13 +1,19 @@
 import { match, P }from 'ts-pattern'
 import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from '@tauri-apps/api/core';
+import { info, error } from '@tauri-apps/plugin-log';
 import "./App.css";
 
-function handleOpenFileDialog() {
-  invoke("open_file_dialog")
-    .then((response) => console.log(response))
-    .catch((error) => console.error(error));
+async function handleOpenFileDialog() {
+  info('START open_file_dialog');
+  try {
+    await invoke("open_file_dialog")
+  } catch  (err) {
+    const e = err as Error;
+    error(e.message);
+  }
+  info("  END open_file_dialog");
 }
 
 const Table = ({ events }: { events: Array<any> }) => {
