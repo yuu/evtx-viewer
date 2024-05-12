@@ -10,35 +10,40 @@ use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind, TimezoneStrategy};
 
 #[tauri::command(rename_all = "snake_case")]
-async fn open_file_dialog(app: AppHandle, window: Window) {
-    app.dialog()
+async fn open_file_dialog(
+    app: AppHandle,
+    window: Window,
+) -> Result<Vec<event::Root>, Vec<event::Root>> {
+    info!("open_file_dialog from rust");
+    let file_path = app
+        .dialog()
         .file()
         .add_filter("evtx", &["evtx"])
         .set_title("ファイルを選択してください")
-        .pick_file(move |file_path| match file_path {
-            Some(file) => {
-                let mut parser = EvtxParser::from_path(file.path).unwrap();
-                let mut events: Vec<event::Root> = Vec::new();
+        .blocking_pick_file();
 
-                for record in parser.records_json() {
-                    if let Ok(r) = record {
-                        match serde_json::from_str::<event::Root>(&r.data) {
-                            Ok(event) => {
-                                events.push(event);
-                            }
-                            Err(err) => {
-                                eprintln!("err: {:?}", err);
-                            }
+    match file_path {
+        Some(file) => {
+            let mut parser = EvtxParser::from_path(file.path).unwrap();
+            let mut events: Vec<event::Root> = Vec::new();
+
+            for record in parser.records_json() {
+                if let Ok(r) = record {
+                    match serde_json::from_str::<event::Root>(&r.data) {
+                        Ok(event) => {
+                            events.push(event);
+                        }
+                        Err(err) => {
+                            eprintln!("err: {:?}", err);
                         }
                     }
                 }
-
-                window
-                    .emit("evtx-data", &events)
-                    .expect("failed to emit event");
             }
-            _ => {}
-        })
+
+            Ok(events)
+        }
+        _ => Ok(Vec::new()),
+    }
 }
 
 fn main() {

@@ -1,20 +1,26 @@
 import { match, P }from 'ts-pattern'
-import { useState, useEffect } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { useState } from "react";
 import { invoke } from '@tauri-apps/api/core';
 import { info, error } from '@tauri-apps/plugin-log';
 import "./App.css";
 
-async function handleOpenFileDialog() {
-  info('START open_file_dialog');
-  try {
-    await invoke("open_file_dialog")
-  } catch  (err) {
-    const e = err as Error;
-    error(e.message);
-  }
-  info("  END open_file_dialog");
-}
+const useOpenLog = () => {
+  const [events, setEvents] = useState<Array<any>>([]);
+
+  const open = async () => {
+    info('START open_file_dialog');
+    try {
+      const res = await invoke("open_file_dialog")
+      setEvents(res as Array<any>);
+    } catch (err) {
+      const e = err as Error;
+      error(e.message);
+    }
+    info("  END open_file_dialog");
+  };
+
+  return { events, open };
+};
 
 const Table = ({ events }: { events: Array<any> }) => {
   return (
@@ -60,21 +66,11 @@ const Table = ({ events }: { events: Array<any> }) => {
 };
 
 function App() {
-  const [events, setEvents] = useState([]);
-
-  useEffect(() => {
-    const unlisten = listen("evtx-data", (event) => {
-      setEvents(event.payload);
-    });
-
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, []);
+  const { events, open } = useOpenLog();
 
   return (
     <div className="container">
-      <button onClick={handleOpenFileDialog}>Click to open dialog</button>
+      <button onClick={open}>Click to open dialog</button>
       <Table events={events} />
     </div>
   );
